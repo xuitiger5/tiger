@@ -1,60 +1,97 @@
 worker_processes 1;
-events { worker_connections 1024; }
+
+events {
+    worker_connections 1024;
+}
 
 http {
+
     server {
+
         listen ${NGINX_PORT};
 
-        # مسیر پنل وب (فوروارد به پورت داخلی 2053 که x-ui روش گوش می‌ده)
+        # =========================
+        # X-UI Panel
+        # =========================
         location /mrtiger/ {
+
             proxy_pass http://127.0.0.1:2053/mrtiger/;
+
             proxy_http_version 1.1;
+
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
+
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # مسیر Subscription (ساب لینک) - فوروارد به پورت داخلی 2096
+        # =========================
+        # Subscription
+        # =========================
         location /sub/ {
+
             proxy_pass http://127.0.0.1:2096/sub/;
+
             proxy_http_version 1.1;
+
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
-		
-       location ~ ^/tiger/(\d{2,5})/?$ {
-		    set $port $1;
-		
-		    proxy_pass http://127.0.0.1:$port;
-		
-		    proxy_http_version 1.1;
-		    proxy_redirect off;
-		
-		    proxy_set_header Upgrade $http_upgrade;
-		    proxy_set_header Connection "upgrade";
-		    proxy_set_header Host $host;
-		    proxy_set_header X-Real-IP $remote_addr;
-		    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		    proxy_set_header X-Forwarded-Proto $scheme;
-		}
 
-        location / {
-            proxy_pass http://127.0.0.1:8080;
+        # =========================
+        # Dynamic Port Proxy
+        # Example:
+        # /tiger/10001
+        # -> 127.0.0.1:10001
+        # =========================
+
+        location /tiger/ {
+
+            rewrite ^/tiger/([0-9]+)/?$ / break;
+
+            set $backend_port $1;
+
+            proxy_pass http://127.0.0.1:$backend_port;
 
             proxy_http_version 1.1;
+
             proxy_redirect off;
 
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
+
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
+
+        # =========================
+        # Default
+        # =========================
+
+        location / {
+
+            proxy_pass http://127.0.0.1:8080;
+
+            proxy_http_version 1.1;
+
+            proxy_redirect off;
+
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
     }
+
 }
