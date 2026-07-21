@@ -6,16 +6,23 @@ events {
 
 http {
 
+    map $uri $xray_port {
+
+        default 8080;
+
+        ~^/tiger/([0-9]+) $1;
+
+    }
+
+
     server {
 
         listen ${NGINX_PORT};
 
-        # =========================
-        # X-UI Panel
-        # =========================
+
         location /mrtiger/ {
 
-            proxy_pass http://127.0.0.1:2053/mrtiger/;
+            proxy_pass http://127.0.0.1:2053;
 
             proxy_http_version 1.1;
 
@@ -23,40 +30,22 @@ http {
             proxy_set_header Connection "upgrade";
 
             proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # =========================
-        # Subscription
-        # =========================
+
         location /sub/ {
 
-            proxy_pass http://127.0.0.1:2096/sub/;
+            proxy_pass http://127.0.0.1:2096;
 
             proxy_http_version 1.1;
 
             proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # =========================
-        # Dynamic Port Proxy
-        # Example:
-        # /tiger/10001
-        # -> 127.0.0.1:10001
-        # =========================
 
         location /tiger/ {
 
-            rewrite ^/tiger/([0-9]+)/?$ / break;
-
-            set $backend_port $1;
-
-            proxy_pass http://127.0.0.1:$backend_port;
+            proxy_pass http://127.0.0.1:$xray_port;
 
             proxy_http_version 1.1;
 
@@ -66,14 +55,14 @@ http {
             proxy_set_header Connection "upgrade";
 
             proxy_set_header Host $host;
+
             proxy_set_header X-Real-IP $remote_addr;
+
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # =========================
-        # Default
-        # =========================
 
         location / {
 
@@ -81,17 +70,11 @@ http {
 
             proxy_http_version 1.1;
 
-            proxy_redirect off;
-
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
 
             proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
     }
-
 }
